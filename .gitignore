@@ -219,3 +219,11 @@ __marimo__/
 
 #perso
 docs
+
+# Airflow
+logs/
+plugins/
+config/
+airflow.cfg
+webserver_config.py
+*.pid

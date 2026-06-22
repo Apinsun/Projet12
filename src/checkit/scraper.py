@@ -4,6 +4,7 @@ import feedparser
 from bs4 import BeautifulSoup
 import json
 from pathlib import Path
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -49,16 +50,18 @@ def scrape_multimodal_article(url):
         
         # Le filtre : on ne renvoie la donnée QUE si elle est multimodale
         if image_url and len(content) > 100:
+            # On retourne notre format standardisé
             return {
-                "source_url": url,
+                "article_url": url,
                 "title": title,
                 "content": content,
-                "image_url": image_url
+                "image_url": image_url,
+                "source_type": "rss_scraping",
+                "extracted_at": datetime.now().isoformat()
             }
         else:
             logging.warning(f"Article ignoré (manque image ou texte trop court) : {url}")
             return None
-            
     except Exception as e:
         logging.error(f"Erreur lors du scraping de {url} : {e}")
         return None

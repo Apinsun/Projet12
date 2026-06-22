@@ -4,11 +4,15 @@ import logging
 import requests
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-load_dotenv(find_dotenv())
+# load_dotenv(find_dotenv())
+# API_KEY = os.getenv("NEWSDATA_API_KEY")
+
 API_KEY = os.getenv("NEWSDATA_API_KEY")
+
 BASE_URL = "https://newsdata.io/api/1/news"
 
 # 1. FONCTION DE CONNEXION (Extract)
@@ -35,13 +39,30 @@ def filter_multimodal_data(raw_articles):
 
     valid_articles = []
     for art in raw_articles:
-        has_text = bool(art.get('content') or art.get('description'))
-        has_image = bool(art.get('image_url'))
+        raw_content = art.get('content', '')
+        description = art.get('description', '')
         
-        if has_text and has_image:
-            valid_articles.append(art)
+        # Si le content est le message de blocage, on force à prendre la description
+        if raw_content == "ONLY AVAILABLE IN PAID PLANS":
+            text = description
+        else:
+            text = raw_content or description
+        image = art.get('image_url')
+        url = art.get('link')
+        
+        if text and image and url:
+            # On mappe les champs de l'API vers notre format standardisé
+            standardized_art = {
+                "article_url": url,
+                "title": art.get('title', 'Titre introuvable'),
+                "content": text,
+                "image_url": image,
+                "source_type": "api_newsdata",
+                "extracted_at": datetime.now().isoformat()
+            }
+            valid_articles.append(standardized_art)
             
-    logging.info(f"Nettoyage : {len(valid_articles)} articles multimodaux conservés sur {len(raw_articles)} bruts.")
+    logging.info(f"Nettoyage : {len(valid_articles)} articles multimodaux conservés.")
     return valid_articles
 
 # 3. FONCTION DE CHARGEMENT (Pour la déduplication)
@@ -56,7 +77,7 @@ def load_existing_data(filename="articles_bruts.json"):
         try:
             data = json.load(f)
             # L'astuce : on cherche 'link' (API) ou 'source_url' (Scraper)
-            known_urls = {art.get('link', art.get('source_url')) for art in data if art.get('link') or art.get('source_url')}
+            known_urls = {art.get('link', art.get('article_url')) for art in data if art.get('link') or art.get('source_url')}
             return data, known_urls
         except json.JSONDecodeError:
             return [], set()
