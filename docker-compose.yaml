@@ -292,5 +292,22 @@ services:
     ports:
       - "8082:8080"
 
+  postgres-data:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: admin_db
+      POSTGRES_PASSWORD: super_secure_password_admin
+      POSTGRES_DB: checkit_db
+    volumes:
+      - postgres-data-volume:/var/lib/postgresql/data
+    ports:
+      - "5433:5432" # On change le port pour ne pas entrer en conflit avec celui d'Airflow
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "admin_db"]
+      interval: 10s
+      retries: 5
+    restart: always
+
 volumes:
   postgres-db-volume:
+  postgres-data-volume:
